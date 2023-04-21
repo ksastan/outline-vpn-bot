@@ -77,7 +77,8 @@ def permission_check(func):
         # permission check code goes here
         user_id = message.from_user.id
         # For example, we only allow users with user_id 123 and 456 to run the command
-        if user_id not in AUTHORIZED_IDS:
+        if str(user_id) not in AUTHORIZED_IDS:
+            logging.error(f"user id {user_id} don't have permissions")
             await message.answer(f"You do not have permission to run this command.\nYour user_id={user_id}")
             return
         # if permission check pass, run the original function
@@ -96,8 +97,7 @@ async def send_welcome(message: types.Message):
     await message.reply(
         "**Create new VPN key:** /newkey <keyname>\n"
         "**List existed keys:** /showkeys\n"
-        "**Delete key:** /delkey <keyid>\n"
-        f"{message.from_user.id}", parse_mode="Markdown")
+        "**Delete key:** /delkey <keyid>\n", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['newkey'])
