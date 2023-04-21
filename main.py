@@ -112,7 +112,7 @@ async def newkey(message: types.Message):
                 name_exists = True
         if not name_exists:
             key_access_url = create_key(key_name)
-            await message.answer(f"Access URL for new key:\n`{key_access_url}`")
+            await message.answer(f"Access URL for new key:\n`{key_access_url}`", parse_mode="Markdown")
         else:
             logging.error(f"key {key_name} already existed")
             await message.answer(f"Key with name {key_name} already exists")
@@ -129,8 +129,8 @@ async def showkeys(message: types.Message):
 @dp.message_handler(commands=['delkey'])
 @permission_check
 async def delkey(message: types.Message):
-    keys = get_keys()
     try:
+        keys = get_keys()
         key_id = message.text.split()[1]
         if key_id in keys.values():
             client.delete_key(int(key_id))
@@ -141,7 +141,7 @@ async def delkey(message: types.Message):
             await message.answer(f"Key with id {key_id} not existed")
     except IndexError:
         logging.error("no specified key id to delete")
-        await message.answer("There is no key id. Specify key name: `/delkey <id>`")
+        await message.answer("There is no key id. Specify key name: `/delkey <id>`", parse_mode="Markdown")
 
 
 if __name__ == '__main__':
