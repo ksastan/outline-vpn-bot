@@ -1,5 +1,3 @@
-import sys
-
 from outline_vpn.outline_vpn import OutlineVPN
 from aiogram import Bot, Dispatcher, executor, types
 import os
@@ -58,7 +56,6 @@ def get_keys():
 
 def create_key(name):
     """
-
     :param name: key name
     :return: connection URL string
     """
