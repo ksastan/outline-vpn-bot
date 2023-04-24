@@ -29,5 +29,5 @@ make stop
 
 ## Push docker image
 ```shell
-make push TAG=0.0.1
+make push TAG=0.0.1 DOCKER_REPO=''
 ```

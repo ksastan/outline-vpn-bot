@@ -4,6 +4,7 @@ TAG=$(value TAG)
 TELEGRAM_API_TOKEN=$(value TELEGRAM_API_TOKEN)
 OUTLINE_API_URL=$(value OUTLINE_API_URL)
 AUTHORIZED_IDS=$(value AUTHORIZED_IDS)
+DOCKER_REPO=$(value DOCKER_REPO)
 
 .PHONY: build
 build:
@@ -11,9 +12,9 @@ build:
 
 .PHONY: push
 push:
-	docker image tag $(IMAGE_NAME) ksastan/$(PROJECT_NAME):$(TAG)
-	docker image tag $(IMAGE_NAME) ksastan/$(PROJECT_NAME):latest
-	docker image push --all-tags ksastan/$(PROJECT_NAME)
+	docker image tag $(IMAGE_NAME) $(DOCKER_REPO)/$(PROJECT_NAME):$(TAG)
+	docker image tag $(IMAGE_NAME) $(DOCKER_REPO)/$(PROJECT_NAME):latest
+	docker image push --all-tags $(DOCKER_REPO)/$(PROJECT_NAME)
 
 .PHONY: run
 run:
