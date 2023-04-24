@@ -5,6 +5,7 @@ This bot can manage OutlineVPN users through telegram
 - Create new VPN key: `/newkey <keyname>`
 - List existed keys: `/showkeys`
 - Delete key: `/delkey <keyid>`
+- Get access key: `/getkey <keyid>`
 
 ## Run container
 ```shell
