@@ -16,29 +16,28 @@ AUTHORIZED_IDS = AUTHORIZED_IDS.split(',') if AUTHORIZED_IDS else ""
 client = OutlineVPN(api_url=OUTLINE_API_URL)
 # logging setup
 logs = logging.getLogger()
-logs.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logs.addHandler(handler)
 # set logging level
 if LOGGING_LEVEL.upper() == "ERROR":
-    handler.setLevel(logging.ERROR)
+    logs.setLevel(logging.ERROR)
 elif LOGGING_LEVEL.upper() == "INFO":
-    handler.setLevel(logging.INFO)
+    logs.setLevel(logging.INFO)
 elif LOGGING_LEVEL.upper() == "DEBUG":
-    handler.setLevel(logging.DEBUG)
+    logs.setLevel(logging.DEBUG)
 elif LOGGING_LEVEL.upper() == "CRITICAL":
-    handler.setLevel(logging.CRITICAL)
+    logs.setLevel(logging.CRITICAL)
 else:
-    handler.setLevel(logging.WARNING)
+    logs.setLevel(logging.ERROR)
 
 
 def show_keys():
     keys_list = ""
     for key in client.get_keys():
         keys_list += f"{key.key_id} {key.name if key.name else 'Noname'} " \
-                     f"{int(key.used_bytes / (1024 ** 3)) if key.used_bytes else 0}Gb\n"
+                     f"{int(key.used_bytes / (1024 ** 2)) if key.used_bytes else 0}MB\n"
     logging.info('show vpn keys successfully')
     return keys_list
 
@@ -73,6 +72,7 @@ def permission_check(func):
     """
     Decorator to check telegram user permissions
     """
+
     async def wrapped(message: types.Message):
         # permission check code goes here
         user_id = message.from_user.id
@@ -83,6 +83,7 @@ def permission_check(func):
             return
         # if permission check pass, run the original function
         await func(message)
+
     return wrapped
 
 
@@ -97,7 +98,8 @@ async def send_welcome(message: types.Message):
     await message.reply(
         "**Create new VPN key:** /newkey <keyname>\n"
         "**List existed keys:** /showkeys\n"
-        "**Delete key:** /delkey <keyid>\n", parse_mode="Markdown")
+        "**Delete key:** /delkey <keyid>\n"
+        "**Get key access_url:** /getkey <keyid>\n", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['newkey'])
@@ -114,10 +116,11 @@ async def newkey(message: types.Message):
             key_access_url = create_key(key_name)
             await message.answer(f"Access URL for new key:\n`{key_access_url}`", parse_mode="Markdown")
         else:
-            logging.error(f"key {key_name} already existed")
+            logging.error(f"key {key_name} already exists")
             await message.answer(f"Key with name {key_name} already exists")
     except IndexError:
-        await message.answer(f"There is no key name. Specify key name: `/newkey <keyname>`",  parse_mode="Markdown")
+        logging.error("no specified key name - newkey")
+        await message.answer(f"There is no key name. Specify key name: `/newkey <keyname>`", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['showkeys'])
@@ -132,7 +135,8 @@ async def delkey(message: types.Message):
     try:
         keys = get_keys()
         key_id = message.text.split()[1]
-        if key_id in keys.values():
+        logging.debug(f"key_id={key_id} keys={keys.keys()}")
+        if key_id in keys.keys():
             client.delete_key(int(key_id))
             logging.info(f"delete key id={key_id} successfully")
             await message.answer(f"Key with id {key_id} was deleted")
@@ -140,8 +144,27 @@ async def delkey(message: types.Message):
             logging.info(f"key with id {key_id} not existed")
             await message.answer(f"Key with id {key_id} not existed")
     except IndexError:
-        logging.error("no specified key id to delete")
+        logging.error("no specified key id - delkey")
         await message.answer("There is no key id. Specify key name: `/delkey <id>`", parse_mode="Markdown")
+
+
+@dp.message_handler(commands=['getkey'])
+@permission_check
+async def getkey(message: types.Message):
+    try:
+        keys = get_keys()
+        key_id = message.text.split()[1]
+        logging.debug(f"key_id={key_id} keys={keys.keys()}")
+        if key_id in keys.keys():
+            logging.info(f"Get access_url for key id={key_id} successfully")
+            await message.answer(f"Access url for key with id {key_id}:\n`{keys[key_id]['access_url']}`",
+                                 parse_mode="Markdown")
+        else:
+            logging.info(f"key with id {key_id} not existed")
+            await message.answer(f"Key with id {key_id} not existed")
+    except IndexError:
+        logging.error("no specified key id - getkey")
+        await message.answer("There is no key id. Specify key name: `/getkey <id>`", parse_mode="Markdown")
 
 
 if __name__ == '__main__':
