@@ -104,7 +104,7 @@ async def send_welcome(message: types.Message):
 
 @dp.message_handler(commands=['newkey'])
 @permission_check
-async def new_key(message: types.Message):
+async def newkey(message: types.Message):
     name_exists = False
     try:
         command = message.text.split()
@@ -121,7 +121,7 @@ async def new_key(message: types.Message):
             logging.error(f"key {key_name} already exists")
             await message.answer(f"Key with name {key_name} already exists")
     except IndexError:
-        logging.error("no specified key name - new_key")
+        logging.error("no specified key name - newkey")
         await message.answer(f"There is no key name. Specify key name: `/newkey <keyname> <limitGB>`", parse_mode="Markdown")
 
 
@@ -133,7 +133,7 @@ async def showkeys(message: types.Message):
 
 @dp.message_handler(commands=['delkey'])
 @permission_check
-async def del_key(message: types.Message):
+async def delkey(message: types.Message):
     try:
         vpn_keys = get_keys()
         key_id = message.text.split()[1]
@@ -146,13 +146,13 @@ async def del_key(message: types.Message):
             logging.info(f"key with id {key_id} not existed")
             await message.answer(f"Key with id {key_id} not existed")
     except IndexError:
-        logging.error("no specified key id - del_key")
+        logging.error("no specified key id - delkey")
         await message.answer("There is no key id. Specify key name: `/delkey <id>`", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['getkey'])
 @permission_check
-async def get_key(message: types.Message):
+async def getkey(message: types.Message):
     try:
         keys = get_keys()
         key_id = message.text.split()[1]
@@ -165,10 +165,13 @@ async def get_key(message: types.Message):
             logging.info(f"key with id {key_id} not existed")
             await message.answer(f"Key with id {key_id} not existed")
     except IndexError:
-        logging.error(f"no specified key id - get_key")
+        logging.error(f"no specified key id - getkey")
         await message.answer("There is no key id. Specify key name: `/getkey <id>`", parse_mode="Markdown")
 
 
 if __name__ == '__main__':
-    print("Running...")
-    executor.start_polling(dp)
+    try:
+        executor.start_polling(dp)
+        print("Outline-vpn-bot is running...")
+    except Exception as e:
+        logging.critical(f"Telegram bot critical error:\n{e}")
