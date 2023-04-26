@@ -10,6 +10,7 @@ from urllib3 import PoolManager
 
 urllib3.disable_warnings()
 
+
 @dataclass
 class OutlineKey:
     """
@@ -35,6 +36,7 @@ class _FingerprintAdapter(requests.adapters.HTTPAdapter):
     This adapter injected into the requests session will check that the
     fingerprint for the certificate matches for every request
     """
+
     def __init__(self, fingerprint=None, **kwargs):
         self.fingerprint = str(fingerprint)
         super(_FingerprintAdapter, self).__init__(**kwargs)
@@ -71,8 +73,8 @@ class OutlineVPN:
                 f"{self.api_url}/metrics/transfer", verify=False
             )
             if (
-                response_metrics.status_code >= 400
-                or "bytesTransferredByUserId" not in response_metrics.json()
+                    response_metrics.status_code >= 400
+                    or "bytesTransferredByUserId" not in response_metrics.json()
             ):
                 raise OutlineServerErrorException("Unable to get metrics")
 
@@ -160,8 +162,8 @@ class OutlineVPN:
         }"""
         response = self.session.get(f"{self.api_url}/metrics/transfer", verify=False)
         if (
-            response.status_code >= 400
-            or "bytesTransferredByUserId" not in response.json()
+                response.status_code >= 400
+                or "bytesTransferredByUserId" not in response.json()
         ):
             raise OutlineServerErrorException("Unable to get metrics")
         return response.json()
