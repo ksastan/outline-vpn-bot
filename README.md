@@ -2,7 +2,7 @@
 ## Overview
 This bot can manage OutlineVPN users through telegram
 ## Bot commands
-- Create new VPN key: `/newkey <keyname>`
+- Create new VPN key: `/newkey <keyname> <limitGb>`
 - List existed keys: `/showkeys`
 - Delete key: `/delkey <keyid>`
 - Get access key: `/getkey <keyid>`

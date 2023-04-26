@@ -1,4 +1,5 @@
 from outline_vpn.outline_vpn import OutlineVPN
+from functools import wraps
 from aiogram import Bot, Dispatcher, executor, types
 import os
 import sys
@@ -53,15 +54,16 @@ def get_keys():
     return keys_list
 
 
-def create_key(name):
+def create_key(name, traffic_limit):
     """
+    :param traffic_limit: limit in Gb
     :param name: key name
     :return: connection URL string
     """
     try:
         new_key = client.create_key()
         client.rename_key(new_key.key_id, name)
-        client.add_data_limit(new_key.key_id, 1024 ** 3 * 50)  # 50Gb
+        client.add_data_limit(new_key.key_id, traffic_limit)
         logging.info(f"create new key {name} successfully")
         return new_key.access_url
     except Exception as e:
@@ -72,18 +74,17 @@ def permission_check(func):
     """
     Decorator to check telegram user permissions
     """
-
+    @wraps(func)
     async def wrapped(message: types.Message):
         # permission check code goes here
         user_id = message.from_user.id
         # For example, we only allow users with user_id 123 and 456 to run the command
         if str(user_id) not in AUTHORIZED_IDS:
-            logging.error(f"user id {user_id} don't have permissions")
+            logging.error(f"user id {user_id} don't have permissions - {func.__name__}")
             await message.answer(f"You do not have permission to run this command.\nYour user_id={user_id}")
             return
         # if permission check pass, run the original function
         await func(message)
-
     return wrapped
 
 
@@ -92,51 +93,52 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)  # look for updates
 
 
-@dp.message_handler(commands=['start'])
+@dp.message_handler(commands=['start','help'])
 @permission_check
 async def send_welcome(message: types.Message):
-    await message.reply(
-        "**Create new VPN key:** /newkey <keyname>\n"
-        "**List existed keys:** /showkeys\n"
-        "**Delete key:** /delkey <keyid>\n"
-        "**Get key access_url:** /getkey <keyid>\n", parse_mode="Markdown")
+    await message.reply("*Create new VPN key:* /newkey <keyname> <limit in GB>\n"
+        "*List existed keys:* /showkeys\n"
+        "*Delete key:* /delkey <keyid>\n"
+        "*Get key access url:* /getkey <keyid>", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['newkey'])
 @permission_check
-async def newkey(message: types.Message):
+async def new_key(message: types.Message):
     name_exists = False
     try:
-        key_name = message.text.split()[1]
+        command = message.text.split()
+        key_name = command[1]
+        traffic_limit = 1024 ** 3 * int(command[2]) if len(command) == 3 else 1024 ** 3 * 30  # default 30Gb
         keys = get_keys()
         for key in keys.values():
             if key['name'] == key_name:
                 name_exists = True
         if not name_exists:
-            key_access_url = create_key(key_name)
+            key_access_url = create_key(name=key_name, traffic_limit=traffic_limit)
             await message.answer(f"Access URL for new key:\n`{key_access_url}`", parse_mode="Markdown")
         else:
             logging.error(f"key {key_name} already exists")
             await message.answer(f"Key with name {key_name} already exists")
     except IndexError:
-        logging.error("no specified key name - newkey")
-        await message.answer(f"There is no key name. Specify key name: `/newkey <keyname>`", parse_mode="Markdown")
+        logging.error("no specified key name - new_key")
+        await message.answer(f"There is no key name. Specify key name: `/newkey <keyname> <limitGB>`", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['showkeys'])
 @permission_check
 async def showkeys(message: types.Message):
-    await message.answer(f"**ID Name  Traffic**:\n{show_keys()}", parse_mode="Markdown")
+    await message.answer(f"*ID Name  Traffic*:\n{show_keys()}", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['delkey'])
 @permission_check
-async def delkey(message: types.Message):
+async def del_key(message: types.Message):
     try:
-        keys = get_keys()
+        vpn_keys = get_keys()
         key_id = message.text.split()[1]
-        logging.debug(f"key_id={key_id} keys={keys.keys()}")
-        if key_id in keys.keys():
+        logging.debug(f"key_id={key_id} keys={vpn_keys.keys()}")
+        if key_id in vpn_keys.keys():
             client.delete_key(int(key_id))
             logging.info(f"delete key id={key_id} successfully")
             await message.answer(f"Key with id {key_id} was deleted")
@@ -144,13 +146,13 @@ async def delkey(message: types.Message):
             logging.info(f"key with id {key_id} not existed")
             await message.answer(f"Key with id {key_id} not existed")
     except IndexError:
-        logging.error("no specified key id - delkey")
+        logging.error("no specified key id - del_key")
         await message.answer("There is no key id. Specify key name: `/delkey <id>`", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['getkey'])
 @permission_check
-async def getkey(message: types.Message):
+async def get_key(message: types.Message):
     try:
         keys = get_keys()
         key_id = message.text.split()[1]
@@ -163,7 +165,7 @@ async def getkey(message: types.Message):
             logging.info(f"key with id {key_id} not existed")
             await message.answer(f"Key with id {key_id} not existed")
     except IndexError:
-        logging.error("no specified key id - getkey")
+        logging.error(f"no specified key id - get_key")
         await message.answer("There is no key id. Specify key name: `/getkey <id>`", parse_mode="Markdown")
 
 
