@@ -1,37 +1,14 @@
 from outline_vpn.outline_vpn import OutlineVPN
 from functools import wraps
 from aiogram import Bot, Dispatcher, executor, types
-import os
-import sys
 import logging
-
-# environment variables with credentials
-API_TOKEN = os.environ.get('TELEGRAM_API_TOKEN')
-OUTLINE_API_URL = os.environ.get('OUTLINE_API_URL')
-# environment variables
-LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', 'ERROR')
-AUTHORIZED_IDS = os.environ.get('AUTHORIZED_IDS')
-AUTHORIZED_IDS = AUTHORIZED_IDS.split(',') if AUTHORIZED_IDS else ""
+import logs.log_config
+from config import API_TOKEN, OUTLINE_API_URL, LOGGING_LEVEL, AUTHORIZED_IDS
 
 # Setup the access with the API URL (Use the one provided to you after the server setup)
 client = OutlineVPN(api_url=OUTLINE_API_URL)
-# logging setup
-logs = logging.getLogger()
-handler = logging.StreamHandler(sys.stdout)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-logs.addHandler(handler)
-# set logging level
-if LOGGING_LEVEL.upper() == "ERROR":
-    logs.setLevel(logging.ERROR)
-elif LOGGING_LEVEL.upper() == "INFO":
-    logs.setLevel(logging.INFO)
-elif LOGGING_LEVEL.upper() == "DEBUG":
-    logs.setLevel(logging.DEBUG)
-elif LOGGING_LEVEL.upper() == "CRITICAL":
-    logs.setLevel(logging.CRITICAL)
-else:
-    logs.setLevel(logging.ERROR)
+# logs init
+logs.log_config.log_setup(LOGGING_LEVEL)
 
 
 def show_keys():
@@ -93,13 +70,13 @@ bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)  # look for updates
 
 
-@dp.message_handler(commands=['start','help'])
+@dp.message_handler(commands=['start', 'help'])
 @permission_check
 async def send_welcome(message: types.Message):
     await message.reply("*Create new VPN key:* /newkey <keyname> <limit in GB>\n"
-        "*List existed keys:* /showkeys\n"
-        "*Delete key:* /delkey <keyid>\n"
-        "*Get key access url:* /getkey <keyid>", parse_mode="Markdown")
+                        "*List existed keys:* /showkeys\n"
+                        "*Delete key:* /delkey <keyid>\n"
+                        "*Get key access url:* /getkey <keyid>", parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['newkey'])
@@ -109,7 +86,7 @@ async def newkey(message: types.Message):
     try:
         command = message.text.split()
         key_name = command[1]
-        traffic_limit = 1024 ** 3 * int(command[2]) if len(command) == 3 else 1024 ** 3 * 30  # default 30Gb
+        traffic_limit = 1024 ** 3 * int(command[2]) if len(command) == 3 else 1024 ** 3 * 50  # default 30Gb
         keys = get_keys()
         for key in keys.values():
             if key['name'] == key_name:
@@ -122,7 +99,8 @@ async def newkey(message: types.Message):
             await message.answer(f"Key with name {key_name} already exists")
     except IndexError:
         logging.error("no specified key name - newkey")
-        await message.answer(f"There is no key name. Specify key name: `/newkey <keyname> <limitGB>`", parse_mode="Markdown")
+        await message.answer(f"There is no key name. Specify key name: `/newkey <keyname> <limitGB>`",
+                             parse_mode="Markdown")
 
 
 @dp.message_handler(commands=['showkeys'])
